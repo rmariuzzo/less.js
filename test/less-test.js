@@ -6,29 +6,46 @@ var less = require('../lib/less');
 
 less.tree.functions.add = function (a, b) {
     return new(less.tree.Dimension)(a.value + b.value);
-}
+};
 less.tree.functions.increment = function (a) {
     return new(less.tree.Dimension)(a.value + 1);
-}
+};
 less.tree.functions._color = function (str) {
     if (str.value === "evil red") { return new(less.tree.Color)("600") }
-}
+};
 
 sys.puts("\n" + stylize("LESS", 'underline') + "\n");
 
 fs.readdirSync('test/less').forEach(function (file) {
+    
+    var failCount = 0;
+    
     if (! /\.less/.test(file)) { return }
 
     toCSS('test/less/' + file, function (err, less) {
         var name = path.basename(file, '.less');
 
         fs.readFile(path.join('test/css', name) + '.css', 'utf-8', function (e, css) {
-            sys.print("- " + name + ": ")
+            sys.print("- " + name + ": ");
             if (less === css) { sys.print(stylize('OK', 'green')) }
             else if (err) {
                 sys.print(stylize("ERROR: " + (err && err.message), 'red'));
             } else {
                 sys.print(stylize("FAIL", 'yellow'));
+                // Print the line that fails.
+                var lessLines = less.split('\n'),
+                    cssLines = css.split('\n');
+                for (var i = 0; i < lessLines.length; i++) {
+                    if (lessLines[i] !== cssLines[i]) {
+                        failCount++;
+                        sys.puts('');
+                        sys.puts('  ---');
+                        sys.puts('  Fail #' + failCount + ':');
+                        sys.puts(stylize('  RESULT:   ' + lessLines[i], 'yellow'));
+                        sys.puts(stylize('  EXPECTED: ' + cssLines[i], 'yellow'));
+                        sys.print('  ---');
+                    }
+                }
             }
             sys.puts("");
         });
